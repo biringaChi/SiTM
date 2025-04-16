@@ -176,3 +176,8 @@ cython_debug/
 
 # Ignored project files
 core
+casestudies
+scratch.txt
+sitm.ipynb
+bigvul
+dance
