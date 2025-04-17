@@ -154,11 +154,3 @@ class InferenceVul:
                 if details["credential_type"] != "Empty":
                     return True
         return False
-
-
-# # Usage Example:
-# model_path = f"{os.getcwd()}/models/m2.pth"
-# detector = InferenceVul(model_path)
-# test_path = "/Users/Gabriel/Projects/sitm/test.py"
-# print(detector.run_detection(test_path))
-# # print(detector.has_credentials(test_path))

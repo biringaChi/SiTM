@@ -162,11 +162,3 @@ class VulDetector:
             if any(pred == 1 for pred in predictions):
                 return True
         return False
-
-
-# if __name__ == "__main__":
-#     model_path = "/Users/Gabriel/Projects/sitm/core/models/bigvul/"
-#     test_file = "/Users/Gabriel/Projects/sitm/exp_files/test1.cpp"
-#     detector = VulDetector(model_path)
-#     # print(detector.has_vulnerability(test_file))
-#     print(detector.run_detection_verbose(test_file))
