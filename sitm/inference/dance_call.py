@@ -1,6 +1,6 @@
 import sys
 import os
-from dance import InferenceVul
+from sitm.inference import InferenceVul
 
 def main():
     if len(sys.argv) < 2:

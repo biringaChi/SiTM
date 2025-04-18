@@ -1,12 +1,14 @@
-import os 
 import torch
 import numpy as np
+from typing import Tuple, List, Generator, Sequence
 from simpletransformers.config.model_args import ModelArgs
 from simpletransformers.language_representation import RepresentationModel
 
-from model_skel import HCCD
+from sitm.inference.model_skel import HCCD
+from sitm.utils.io import get_all_text_files, read_file_lines
+from sitm.utils.functions import view_results
 
-from transformers import logging 
+from transformers import logging
 logging.set_verbosity_error()
 
 class InferenceVul:
@@ -15,78 +17,43 @@ class InferenceVul:
         self.hccd = HCCD()
         self.model = self.load_model()
 
-    def _batch(self, sequence, steps = 1):
+    def _batch(self, sequence: Sequence[str], steps: int = 1) -> Generator[list[str], None, None]:
         for idx in range(0, len(sequence), steps):
             yield sequence[idx: min(idx + steps, len(sequence))]
 
-    def _repr_model(self, sequence, model_type, model_name, batch_n = 32):
-        use_cuda = True if torch.cuda.is_available() else False
+    def _repr_model(
+        self, sequence: List[str], model_type: str, model_name: str, batch_n: int = 32
+    ) -> List[np.ndarray]:
+        use_cuda = torch.cuda.is_available()
         model_args = ModelArgs(num_train_epochs = 4)
         hidden_states = []
         model = RepresentationModel(
             model_type = model_type, model_name = model_name, args = model_args, use_cuda = use_cuda
         )
         for x in self._batch(sequence, batch_n):
-            hidden_states.append(model.encode_sentences(x, combine_strategy = "mean", batch_size = len(x)))
+            hidden_states.append(
+                model.encode_sentences(x, combine_strategy = "mean", batch_size = len(x))
+            )
         return [i for vector in hidden_states for i in vector]
 
-    def _process_files(self, file_path: str):
-        with open(file_path) as f:
-            raw_lines = f.readlines()
-        non_empty_lines = []
-        line_map = []
-        for idx, line in enumerate(raw_lines):
-            if line.strip():
-                non_empty_lines.append(line.strip()) 
-                line_map.append(idx) 
-            else:
-                line_map.append(idx)
-        return raw_lines, non_empty_lines
-
-    def get_text_file(self, file_path):
-        try:
-            with open(file_path, "rb") as f:
-                return b"\0" not in f.read(1024)
-        except:
-            return False
-
-    def get_all_text_files(self, path):
-        files = []
-
-        if isinstance(path, list):
-            paths = path
-        else:
-            paths = [path]
-        for p in paths:
-            if os.path.isfile(p) and self.get_text_file(p):
-                files.append(p)
-            elif os.path.isdir(p):
-                for root, _, filenames in os.walk(p):
-                    for name in filenames:
-                        full_path = os.path.join(root, name)
-                        if self.get_text_file(full_path):
-                            files.append(full_path)
-
-        return files
-
-    def get_embeddings(self, non_empty_lines):
-        embeddings = self._repr_model(
+    def get_embeddings(self, non_empty_lines: List[str]) -> List[np.ndarray]:
+        return self._repr_model(
             sequence = non_empty_lines,
             model_type = "gpt2",
             model_name = "gpt2",
             batch_n = 32
         )
-        return embeddings
 
-    def load_model(self):
+    def load_model(self) -> torch.nn.Module:
         model = self.hccd
         model.load_state_dict(torch.load(self.model_path, map_location = torch.device("cpu")))
         model.eval()
         return model
 
-    def run_inference(self, embeddings, raw_lines):
-        if len(embeddings) == 0:
+    def run_inference(self, embeddings: List[np.ndarray], raw_lines: List[str]) -> dict:
+        if not embeddings:
             raise ValueError("Embeddings are empty — nothing to infer.")
+
         with torch.no_grad():
             inputs = torch.tensor(np.array(embeddings)).float()
             outputs = self.model(inputs)
@@ -105,48 +72,47 @@ class InferenceVul:
         }
 
         result = {}
-        for idx, raw_line in enumerate(raw_lines, start = 1):
+        for idx, raw_line in enumerate(raw_lines, start=1):
             if raw_line.strip() == "":
                 result[f"Line {idx}"] = {"line_content": "Empty", "credential_type": "Empty"}
             else:
                 pred = predictions.pop(0)
-                result[f"Line {idx}"] = {"line_content": f"[{raw_line.strip()}]", "credential_type": f"[{label_map[pred]}]"}
+                result[f"Line {idx}"] = {
+                    "line_content": f"[{raw_line.strip()}]",
+                    "credential_type": f"[{label_map[pred]}]"
+                }
         return result
 
-    def _view_results(self, result):
-        for line_number, details in result.items():
-            print(f"{line_number} Content: {details['line_content']}, Credential type: {details['credential_type']}")
+    def preprocess_file_lines(self, file_path: str) -> Tuple[List[str], List[str]]:
+        raw_lines = read_file_lines(file_path)
+        non_empty_lines = []
+        line_map = []
+        for idx, line in enumerate(raw_lines):
+            if line.strip():
+                non_empty_lines.append(line.strip())
+            line_map.append(idx)
+        return raw_lines, non_empty_lines
 
-    # def run_detection(self, file_path: str):
-    #     raw_lines, non_empty_lines = self._process_files(file_path)
-    #     if not non_empty_lines:
-    #         print("Skipping empty file — no content to scan.")
-    #         return
-    #     embeddings = self.get_embeddings(non_empty_lines)
-    #     result = self.run_inference(embeddings, raw_lines)
-    #     self._view_results(result)
-
-    def run_detection(self, path):
-        files = self.get_all_text_files(path)
+    def run_detection(self, path: str | List[str]) -> None:
+        files = get_all_text_files(path)
         if not files:
             print("No readable text files found.")
             return
         for file_path in files:
-            raw_lines, non_empty_lines = self._process_files(file_path)
-            if not non_empty_lines:
-                print(f"Skipping empty file: {file_path}")
+            raw_lines, non_empty_lines = self.preprocess_file_lines(file_path)
+            if not raw_lines:
+                print(f"⚠️  Skipping unreadable or empty file: {file_path}")
                 continue
             embeddings = self.get_embeddings(non_empty_lines)
             result = self.run_inference(embeddings, raw_lines)
-            print(f"\n📄 Results for {file_path}")
-            self._view_results(result)
+            print(f"\n Results for {file_path}")
+            view_results(result)
 
-    
-    def has_credentials(self, path: str | list[str]) -> bool:
-        files = self.get_all_text_files(path)
+    def has_credentials(self, path: str | List[str]) -> bool:
+        files = get_all_text_files(path)
         for file_path in files:
-            raw_lines, non_empty_lines = self._process_files(file_path)
-            if not non_empty_lines:
+            raw_lines, non_empty_lines = self.preprocess_file_lines(file_path)
+            if not raw_lines:
                 continue
             embeddings = self.get_embeddings(non_empty_lines)
             result = self.run_inference(embeddings, raw_lines)
