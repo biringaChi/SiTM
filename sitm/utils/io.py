@@ -1,5 +1,5 @@
 import os
-from typing import List, Tuple
+from typing import List
 
 def is_text_file(file_path: str) -> bool:
     try:
@@ -25,10 +25,17 @@ def get_all_text_files(path: str | List[str]) -> List[str]:
     return files
 
 def read_file_lines(file_path: str) -> List[str]:
-    """Reads lines from a file, returns raw lines or empty list on failure."""
     try:
         with open(file_path, "r") as f:
             return f.readlines()
     except Exception as e:
-        print(f"⚠️  Error reading file {file_path}: {e}")
+        print(f"Error reading file {file_path}: {e}")
         return []
+
+def read_source_code(file_path: str) -> str:
+    try:
+        with open(file_path, "r") as f:
+            return f.read()
+    except Exception as e:
+        print(f"⚠️  Failed to read {file_path}: {e}")
+        return ""

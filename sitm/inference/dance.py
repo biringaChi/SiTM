@@ -99,24 +99,32 @@ class InferenceVul:
             print("No readable text files found.")
             return
         for file_path in files:
-            raw_lines, non_empty_lines = self.preprocess_file_lines(file_path)
-            if not raw_lines:
-                print(f"⚠️  Skipping unreadable or empty file: {file_path}")
+            try:
+                raw_lines, non_empty_lines = self.preprocess_file_lines(file_path)
+                if not raw_lines:
+                    print(f"Skipping unreadable or empty file: {file_path}")
+                    continue
+                embeddings = self.get_embeddings(non_empty_lines)
+                result = self.run_inference(embeddings, raw_lines)
+                print(f"Results for {file_path}")
+                view_results(result)
+            except Exception as e:
+                print(f"Error processing file {file_path}: {e}")
                 continue
-            embeddings = self.get_embeddings(non_empty_lines)
-            result = self.run_inference(embeddings, raw_lines)
-            print(f"\n Results for {file_path}")
-            view_results(result)
 
     def has_credentials(self, path: str | List[str]) -> bool:
         files = get_all_text_files(path)
         for file_path in files:
-            raw_lines, non_empty_lines = self.preprocess_file_lines(file_path)
-            if not raw_lines:
+            try:
+                raw_lines, non_empty_lines = self.preprocess_file_lines(file_path)
+                if not raw_lines:
+                    continue
+                embeddings = self.get_embeddings(non_empty_lines)
+                result = self.run_inference(embeddings, raw_lines)
+                for details in result.values():
+                    if details["credential_type"] != "Empty":
+                        return True
+            except Exception as e:
+                print(f"Error scanning file {file_path}: {e}")
                 continue
-            embeddings = self.get_embeddings(non_empty_lines)
-            result = self.run_inference(embeddings, raw_lines)
-            for details in result.values():
-                if details["credential_type"] != "Empty":
-                    return True
         return False

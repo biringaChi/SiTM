@@ -1,6 +1,6 @@
 import sys
 import os
-from vulstyle_inference import VulDetector
+from sitm.inference.vulstyle import VulDetector
 
 def main():
     if len(sys.argv) < 2:
