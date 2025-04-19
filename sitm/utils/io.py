@@ -6,7 +6,7 @@ def is_text_file(file_path: str) -> bool:
         with open(file_path, "rb") as f:
             return b"\0" not in f.read(1024)
     except Exception as e:
-        print(f" Skipping unreadable file: {file_path} — {e}")
+        print(f"Skipping unreadable file: {file_path} — {e}")
         return False
 
 def get_all_text_files(path: str | List[str]) -> List[str]:
@@ -37,5 +37,5 @@ def read_source_code(file_path: str) -> str:
         with open(file_path, "r") as f:
             return f.read()
     except Exception as e:
-        print(f"⚠️  Failed to read {file_path}: {e}")
+        print(f"Failed to read {file_path}: {e}")
         return ""

@@ -1,0 +1,18 @@
+label_map:
+  0: "Password"
+  1: "Generic Secret"
+  2: "Private Key"
+  3: "Generic Token"
+  4: "Predefined Pattern"
+  5: "Auth Key Token"
+  6: "Seed/Salt/Nonce"
+  7: "Other"
+  8: "Benign"
+
+gpt_model_type: "gpt2"
+gpt_model_name: "gpt2"
+batch_size_32: 32
+epochs_4: 4
+mean_pooling: "mean"
+dance_model_path: "models/dance/m2.pth"
+vulstyle_model_path: "models/bigvul"

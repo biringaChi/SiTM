@@ -1,5 +1,6 @@
 import sys
 import os
+from sitm.utils.config import config
 from sitm.inference.vulstyle import VulDetector
 
 def main():
@@ -7,9 +8,8 @@ def main():
         # print a message or fail silently for other missing args
         sys.exit(1)
 
-    model_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "models", "bigvul"))
+    model_path = str(config.vulstyle_model_path)
     detector = VulDetector(model_path)
-
     paths = sys.argv[1:]
     blocked = False
 
@@ -19,9 +19,7 @@ def main():
             print(f"⚠️  Detected vulnerability in {abs_path}.")
             blocked = True
 
-    if blocked:
-        sys.exit(1)
-    sys.exit(0)
+    sys.exit(1 if blocked else 0)
 
 if __name__ == "__main__":
     main()

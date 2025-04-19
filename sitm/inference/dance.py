@@ -7,6 +7,7 @@ from simpletransformers.language_representation import RepresentationModel
 from sitm.inference.model_skel import HCCD
 from sitm.utils.io import get_all_text_files, read_file_lines
 from sitm.utils.functions import view_results
+from sitm.utils.config import config
 
 from transformers import logging
 logging.set_verbosity_error()
@@ -25,23 +26,23 @@ class InferenceVul:
         self, sequence: List[str], model_type: str, model_name: str, batch_n: int = 32
     ) -> List[np.ndarray]:
         use_cuda = torch.cuda.is_available()
-        model_args = ModelArgs(num_train_epochs = 4)
+        model_args = ModelArgs(num_train_epochs = config.epochs_4)
         hidden_states = []
         model = RepresentationModel(
             model_type = model_type, model_name = model_name, args = model_args, use_cuda = use_cuda
         )
         for x in self._batch(sequence, batch_n):
             hidden_states.append(
-                model.encode_sentences(x, combine_strategy = "mean", batch_size = len(x))
+                model.encode_sentences(x, combine_strategy = config.mean_pooling, batch_size = len(x))
             )
         return [i for vector in hidden_states for i in vector]
 
     def get_embeddings(self, non_empty_lines: List[str]) -> List[np.ndarray]:
         return self._repr_model(
             sequence = non_empty_lines,
-            model_type = "gpt2",
-            model_name = "gpt2",
-            batch_n = 32
+            model_type = config.gpt_model_type,
+            model_name = config.gpt_model_name,
+            batch_n = config.batch_size_32
         )
 
     def load_model(self) -> torch.nn.Module:
@@ -53,26 +54,13 @@ class InferenceVul:
     def run_inference(self, embeddings: List[np.ndarray], raw_lines: List[str]) -> dict:
         if not embeddings:
             raise ValueError("Embeddings are empty — nothing to infer.")
-
         with torch.no_grad():
             inputs = torch.tensor(np.array(embeddings)).float()
             outputs = self.model(inputs)
-            predictions = torch.argmax(outputs, dim=1).tolist()
-
-        label_map = {
-            0: "Password",
-            1: "Generic Secret",
-            2: "Private Key",
-            3: "Generic Token",
-            4: "Predefined Pattern",
-            5: "Auth Key Token",
-            6: "Seed/Salt/Nonce",
-            7: "Other",
-            8: "Benign"
-        }
-
+            predictions = torch.argmax(outputs, dim = 1).tolist()
+        label_map = config.label_map
         result = {}
-        for idx, raw_line in enumerate(raw_lines, start=1):
+        for idx, raw_line in enumerate(raw_lines, start = 1):
             if raw_line.strip() == "":
                 result[f"Line {idx}"] = {"line_content": "Empty", "credential_type": "Empty"}
             else:

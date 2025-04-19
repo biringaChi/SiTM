@@ -24,7 +24,6 @@ def get_all_c_files(path):
 		paths = path
 	else:
 		paths = [path]
-
 	for p in paths:
 		if os.path.isfile(p) and is_c_type_file(p):
 			files.append(p)
@@ -42,22 +41,17 @@ def generate_ctype_headers(source_code):
 
 	for match in re.findall(r"\b([a-zA-Z_]\w*)::[a-zA-Z_]\w*\s*\(", source_code):
 		class_stubs.add(match)
-
 	for match in re.findall(r"\b([a-zA-Z_]\w*)::([a-zA-Z_]\w*)\b", source_code):
 		namespace, type_name = match
 		typedef_stubs.add((namespace, type_name))
-
 	for match in re.findall(r"\b([a-zA-Z_]\w*_t)\b", source_code):
 		typedef_stubs.add((None, match))
-
 	header_lines = []
 	for cls in class_stubs:
 		header_lines.append(f"class {cls} {{}};\n")
-
 	for ns, typedef in typedef_stubs:
 		if ns:
 			header_lines.append(f"namespace {ns} {{ class {typedef} {{}}; }}\n")
 		else:
 			header_lines.append(f"typedef int {typedef};\n")
-
 	return "".join(header_lines)

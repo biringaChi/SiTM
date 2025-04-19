@@ -1,15 +1,15 @@
 import sys
 import os
+from sitm.utils.config import config
 from sitm.inference import InferenceVul
 
 def main():
     if len(sys.argv) < 2:
         # log output for no args
         sys.exit(1)
-
-    model_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "models", "dance", "m2.pth"))
+    
+    model_path = str(config.dance_model_path)
     detector = InferenceVul(model_path)
-
     paths = sys.argv[1:]
     blocked = False
 
@@ -18,10 +18,8 @@ def main():
         if detector.has_credentials(abs_path):
             print(f"⚠️  Detected vulnerability in {abs_path}.")
             blocked = True
-
-    if blocked:
-        sys.exit(1)
-    sys.exit(0)
+    
+    sys.exit(1 if blocked else 0)
 
 if __name__ == "__main__":
     main()
