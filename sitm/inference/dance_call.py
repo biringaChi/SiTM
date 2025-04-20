@@ -7,7 +7,7 @@ def main():
     if len(sys.argv) < 2:
         # log output for no args
         sys.exit(1)
-    
+
     model_path = str(config.dance_model_path)
     detector = InferenceVul(model_path)
     paths = sys.argv[1:]

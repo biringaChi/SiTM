@@ -10,6 +10,7 @@ def main():
 
     model_path = str(config.vulstyle_model_path)
     detector = VulDetector(model_path)
+
     paths = sys.argv[1:]
     blocked = False
 
@@ -19,7 +20,9 @@ def main():
             print(f"⚠️  Detected vulnerability in {abs_path}.")
             blocked = True
 
-    sys.exit(1 if blocked else 0)
+    if blocked:
+        sys.exit(1)
+    sys.exit(0)
 
 if __name__ == "__main__":
     main()
