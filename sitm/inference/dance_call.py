@@ -5,7 +5,6 @@ from sitm.inference import InferenceVul
 
 def main():
     if len(sys.argv) < 2:
-        # log output for no args
         sys.exit(1)
 
     model_path = str(config.dance_model_path)
@@ -15,10 +14,13 @@ def main():
 
     for path in paths:
         abs_path = os.path.abspath(path)
+        filename = os.path.basename(abs_path)
+        is_temp_remote = filename.startswith(".sitm_tmp_remote_")
         if detector.has_credentials(abs_path):
-            print(f"⚠️  Detected vulnerability in {abs_path}.")
+            if not is_temp_remote:
+                print(f"⚠️  Detected vulnerability in {abs_path}.")
             blocked = True
-    
+
     sys.exit(1 if blocked else 0)
 
 if __name__ == "__main__":
