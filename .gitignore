@@ -175,6 +175,7 @@ cython_debug/
 
 
 # Ignored project files
+exp_files
 core
 casestudies
 scratch.txt
@@ -183,3 +184,4 @@ bigvul
 dance
 async
 cache.py
+ec.py

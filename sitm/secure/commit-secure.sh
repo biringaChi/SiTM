@@ -3,7 +3,6 @@
 blocked=0
 project_root=$(cd "$(dirname "$0")/.." && pwd)
 
-# Select detection script
 if [[ "$1" == "-cred" ]]; then
     detection_script="$project_root/inference/dance_call.py"
     shift
@@ -44,6 +43,6 @@ done
 if [[ $blocked -eq 1 ]]; then
     echo "❗ commit blocked due to detected issues."
     exit 1
-else
-    git commit "$@"
 fi
+
+git commit "$@"

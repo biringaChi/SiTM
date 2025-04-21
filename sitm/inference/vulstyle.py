@@ -1,8 +1,8 @@
 import os
-from typing import List, Tuple, Union
 import torch
-from simpletransformers.classification import ClassificationModel
+from typing import List, Tuple, Union
 from transformers import logging
+from simpletransformers.classification import ClassificationModel
 
 from sitm import configure_clang
 configure_clang()
@@ -11,7 +11,8 @@ from clang import cindex
 from sitm.utils.io import read_source_code
 from sitm.utils.functions import (
     get_all_c_files,
-    generate_ctype_headers,
+    get_missing_declarations,
+    generate_dummy_header,
     view_results_func
 )
 
@@ -39,33 +40,34 @@ class VulDetector:
     def _extract_functions(self, file_path: str) -> List[Tuple[str, str]]:
         _, ext = os.path.splitext(file_path)
         is_c = ext.lower() == ".c"
+
         source_code = read_source_code(file_path)
         if not source_code:
             return []
-
-        dummy_header = generate_ctype_headers(source_code)
-        combined_source = dummy_header + "\n" + source_code
-
         try:
             index = cindex.Index.create()
-            clang_args = ["-std=c11"] if is_c else ["-std=c++17"]
-            tu = index.parse(file_path, args = clang_args, unsaved_files = [(file_path, combined_source)])
+            clang_args = ['-std=c11'] if is_c else ['-std=c++17']
+            tu = index.parse(file_path, args=clang_args, unsaved_files=[(file_path, source_code)])
+            missing = get_missing_declarations(tu)
+            dummy_header = generate_dummy_header(missing, is_c)
+            combined_source = dummy_header + source_code
+
+            tu = index.parse(file_path, args=clang_args, unsaved_files=[(file_path, combined_source)])
         except Exception as e:
             print(f"Failed to parse {file_path}: {e}")
             return []
-
+        
         functions = []
-
-        def extract_source(node) -> str:
+        def extract_source(node):
             start = node.extent.start
             end = node.extent.end
-            lines = combined_source.splitlines(keepends = True)
+            lines = combined_source.splitlines(keepends=True)
             snippet = lines[start.line - 1:end.line]
             snippet[0] = snippet[0][start.column - 1:]
             snippet[-1] = snippet[-1][:end.column - 1]
             return ''.join(snippet)
 
-        def is_function_or_method(node) -> bool:
+        def is_function_or_method(node):
             return (
                 node.kind == cindex.CursorKind.FUNCTION_DECL and node.is_definition()
             ) or (
@@ -84,7 +86,6 @@ class VulDetector:
                     functions.append((node.spelling, code))
                 except Exception as e:
                     print(f"Could not extract function {node.spelling}: {e}")
-
         return functions
 
     def run_detection(self, path: Union[str, List[str]]) -> None:

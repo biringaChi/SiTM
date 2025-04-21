@@ -1,6 +1,4 @@
-
 import os
-import re
 
 def view_results(result: dict) -> None:
 	for line_number, details in result.items():
@@ -35,23 +33,28 @@ def get_all_c_files(path):
 						files.append(full_path)
 	return files
 
-def generate_ctype_headers(source_code):
-	class_stubs = set()
-	typedef_stubs = set()
+def get_missing_declarations(tu):
+	missing = set()
+	for diag in tu.diagnostics:
+		msg = diag.spelling
+		if "unknown type name" in msg or "undeclared identifier" in msg:
+			parts = msg.split("'")
+			if len(parts) >= 2:
+				missing.add(parts[1])
+	return missing
 
-	for match in re.findall(r"\b([a-zA-Z_]\w*)::[a-zA-Z_]\w*\s*\(", source_code):
-		class_stubs.add(match)
-	for match in re.findall(r"\b([a-zA-Z_]\w*)::([a-zA-Z_]\w*)\b", source_code):
-		namespace, type_name = match
-		typedef_stubs.add((namespace, type_name))
-	for match in re.findall(r"\b([a-zA-Z_]\w*_t)\b", source_code):
-		typedef_stubs.add((None, match))
-	header_lines = []
-	for cls in class_stubs:
-		header_lines.append(f"class {cls} {{}};\n")
-	for ns, typedef in typedef_stubs:
-		if ns:
-			header_lines.append(f"namespace {ns} {{ class {typedef} {{}}; }}\n")
+def generate_dummy_header(missing_symbols, is_c = False):
+	stubs = []
+	for symbol in missing_symbols:
+		if "::" in symbol and not is_c:
+			ns, name = symbol.split("::", 1)
+			stubs.append(f"namespace {ns} {{ class {name} {{}}; }}\n")
+		elif symbol.endswith("_t") or symbol in {"size_t", "uint8_t"}:
+			stubs.append(f"typedef int {symbol};\n")
+		elif is_c:
+			stubs.append(f"typedef int {symbol};\n")
 		else:
-			header_lines.append(f"typedef int {typedef};\n")
-	return "".join(header_lines)
+			stubs.append(f"class {symbol} {{}};\n")
+	if not is_c:
+		stubs.append("#define REGISTER_STATE_CHECK(x) x\n")
+	return "".join(stubs)

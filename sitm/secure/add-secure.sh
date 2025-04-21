@@ -10,7 +10,7 @@ elif [[ "$1" == "-func" ]]; then
     detection_script="$project_root/inference/vulstyle_call.py"
     shift
 else
-    echo "Usage: git add-secure -cred|-func [files or flags]"
+    echo "Usage: git add-secure -cred|-func [files or patterns]"
     exit 1
 fi
 
@@ -19,22 +19,33 @@ if [[ ! -f "$detection_script" ]]; then
     exit 1
 fi
 
-if [[ "$1" == "-A" ]]; then
-    files=$(git ls-files --modified --others --exclude-standard)
-elif [[ "$1" == "-u" ]]; then
-    files=$(git ls-files --modified --deleted)
-elif [[ "$1" == "." ]]; then
-    files=$(git ls-files --modified --others --exclude-standard "$1")
-else
-    files="$@"
-fi
+shopt -s nullglob
+input_args=("$@")
 
-if [[ -z "$files" ]]; then
+if [[ ${#input_args[@]} -eq 0 ]]; then
     echo "✅ no files to scan."
     exit 0
 fi
 
-for file in $files; do
+files=()
+for arg in "${input_args[@]}"; do
+    if [[ "$arg" == "-A" ]]; then
+        files+=($(git ls-files --modified --others --exclude-standard))
+    elif [[ "$arg" == "-u" ]]; then
+        files+=($(git ls-files --modified --deleted))
+    elif [[ "$arg" == "." ]]; then
+        files+=($(git ls-files --modified --others --exclude-standard .))
+    else
+        files+=($arg)
+    fi
+done
+
+if [[ ${#files[@]} -eq 0 ]]; then
+    echo "✅ no matching files found."
+    exit 0
+fi
+
+for file in "${files[@]}"; do
     if [[ -f "$file" ]] && file "$file" | grep -q 'text'; then
         echo "🔍 scanning $file for vulnerabilities..."
         python3 "$detection_script" "$file"
