@@ -15,7 +15,7 @@ else
 fi
 
 if [[ ! -f "$detection_script" ]]; then
-    echo "❌ detection script not found at $detection_script"
+    echo "detection script not found at $detection_script"
     exit 1
 fi
 
@@ -23,7 +23,7 @@ shopt -s nullglob
 input_args=("$@")
 
 if [[ ${#input_args[@]} -eq 0 ]]; then
-    echo "✅ no files to scan."
+    echo "no files to scan."
     exit 0
 fi
 
@@ -50,7 +50,7 @@ for file in "${files[@]}"; do
         echo "🔍 scanning $file for vulnerabilities..."
         python3 "$detection_script" "$file"
         if [[ $? -ne 0 ]]; then
-            echo "🚫 skipping staging for $file"
+            echo "skipping staging for $file"
             blocked=1
         else
             echo "✅ $file passed scan."
@@ -62,6 +62,6 @@ for file in "${files[@]}"; do
 done
 
 if [[ $blocked -eq 1 ]]; then
-    echo "❗ one or more files were blocked due to detected issues."
+    echo "one or more files were blocked due to detected issues."
     exit 1
 fi

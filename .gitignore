@@ -175,7 +175,7 @@ cython_debug/
 
 
 # Ignored project files
-exp_files
+ep
 core
 casestudies
 scratch.txt
@@ -185,3 +185,8 @@ dance
 async
 cache.py
 ec.py
+
+# mercurial (hg)
+.hg
+.hgignore
+hg_test.txt
