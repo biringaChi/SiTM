@@ -1,4 +1,6 @@
-SiTM: Security-in-the-Middle
+##### Security-in-the-Middle (SiTM): Intercepting Vulnerabilities in Transit to Remote
+
+*"shift-left, secure early"*
 
 ---
-under construction...
+active dev

@@ -20,29 +20,47 @@ if [[ ! -f "$detection_script" ]]; then
 fi
 
 shopt -s nullglob
-input_args=("$@")
 
 add_flags=()
 files=()
+do_addremove=0
 
-for arg in "${input_args[@]}"; do
-    if [[ "$arg" == --* || "$arg" == -n || "$arg" == --config=* ]]; then
-        add_flags+=("$arg")
-    elif [[ "$arg" == "-addremove" ]]; then
-        add_flags=("addremove")
-    elif [[ "$arg" == "." ]]; then
-        files+=($(hg status -un .))
-    elif [[ "$arg" == *"*"* || "$arg" == *"?"* ]]; then
-        expanded=($(eval echo "$arg"))
-        files+=("${expanded[@]}")
-    else
-        files+=("$arg")
-    fi
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --include|--exclude|--config)
+            add_flags+=("$1" "$2")
+            shift 2
+            ;;
+        --config=*)
+            add_flags+=("$1")
+            shift
+            ;;
+        -n|--dry-run)
+            add_flags+=("$1")
+            shift
+            ;;
+        -addremove)
+            do_addremove=1
+            shift
+            ;;
+        .)
+            files+=($(hg status -un .))
+            shift
+            ;;
+        -*)
+            add_flags+=("$1")
+            shift
+            ;;
+        *)
+            files+=("$1")
+            shift
+            ;;
+    esac
 done
 
-if [[ "${add_flags[0]}" == "addremove" ]]; then
+if [[ $do_addremove -eq 1 ]]; then
     hg addremove
-    files=$(hg status -man | awk '{print $2}')
+    files=($(hg status -man | awk '{print $2}'))
 fi
 
 if [[ ${#files[@]} -eq 0 ]]; then
