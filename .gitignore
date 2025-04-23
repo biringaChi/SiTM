@@ -190,3 +190,4 @@ ec.py
 .hg
 .hgignore
 hg_test.txt
+docs

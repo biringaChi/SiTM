@@ -5,5 +5,5 @@
 ---
 
 <div align="left">
-  <img alt="Introduction Section" src="./docs/logo/sitm_logo2.png" width="50%" height="50%" />
+  <img alt="logo" src="./docs/logo/sitm_logo2.png" width="50%" height="50%" />
 </div>
