@@ -1,6 +1,6 @@
 import os
 import tempfile
-from sitm.utils.functions import is_c_type_file, get_all_c_files, generate_dummy_header
+from sitm_core.utils.functions import is_c_type_file, get_all_c_files, generate_dummy_header
 
 def test_is_c_type_file():
     assert is_c_type_file("main.c")

@@ -1,7 +1,7 @@
 import tempfile
 import pytest
 
-from sitm.utils.io import (
+from sitm_core.utils.io import (
     is_text_file,
     get_all_text_files,
     read_file_lines,

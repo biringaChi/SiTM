@@ -4,12 +4,12 @@ from typing import List, Tuple, Union
 from transformers import logging
 from simpletransformers.classification import ClassificationModel
 
-from sitm import configure_clang
+from sitm_core import configure_clang
 configure_clang()
 
 from clang import cindex
-from sitm.utils.io import read_source_code
-from sitm.utils.functions import (
+from sitm_core.utils.io import read_source_code
+from sitm_core.utils.functions import (
     get_all_c_files,
     get_missing_declarations,
     generate_dummy_header,

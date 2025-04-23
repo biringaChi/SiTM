@@ -5,8 +5,8 @@ import numpy as np
 
 import pytest
 
-from sitm.inference.dance import InferenceVul
-from sitm.utils.config import config
+from sitm_core.inference.dance import InferenceVul
+from sitm_core.utils.config import config
 
 @pytest.fixture(scope="module")
 def setup_detector():

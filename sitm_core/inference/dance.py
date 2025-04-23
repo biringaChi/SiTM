@@ -4,10 +4,10 @@ from typing import Tuple, List, Generator, Sequence
 from simpletransformers.config.model_args import ModelArgs
 from simpletransformers.language_representation import RepresentationModel
 
-from sitm.inference.model_skel import HCCD
-from sitm.utils.io import get_all_text_files, read_file_lines
-from sitm.utils.functions import view_results
-from sitm.utils.config import config
+from sitm_core.inference.model_skel import HCCD
+from sitm_core.utils.io import get_all_text_files, read_file_lines
+from sitm_core.utils.functions import view_results
+from sitm_core.utils.config import config
 
 from transformers import logging
 logging.set_verbosity_error()

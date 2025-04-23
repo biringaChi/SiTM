@@ -6,7 +6,7 @@ import yaml
 class Config:
     def __init__(self) -> None:
         base_path = Path(__file__).resolve().parent.parent.parent
-        config_path = base_path / "sitm" / "configs" / "config.yaml"
+        config_path = base_path / "sitm_core" / "configs" / "config.yaml"
 
         with open(config_path, "r") as f:
             config_data = yaml.safe_load(f)

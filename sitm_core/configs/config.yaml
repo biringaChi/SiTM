@@ -14,5 +14,5 @@ gpt_model_name: "gpt2"
 batch_size_32: 32
 epochs_4: 4
 mean_pooling: "mean"
-dance_model_path: "sitm/models/dance/m2.pth"
-vulstyle_model_path: "sitm/models/bigvul"
+dance_model_path: "sitm_core/models/dance/m2.pth"
+vulstyle_model_path: "sitm_core/models/bigvul"

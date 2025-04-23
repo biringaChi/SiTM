@@ -21,7 +21,7 @@ setup(
     install_requires = install_requires,
     entry_points = {
         "console_scripts": [
-            "sitm = sitm.cli.scan:main"
+            "sitm = sitm_core.cli.scan:main"
         ]
     },
     include_package_data = True,

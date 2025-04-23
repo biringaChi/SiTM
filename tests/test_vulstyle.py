@@ -2,7 +2,7 @@ import os
 import tempfile
 import shutil
 
-from sitm.inference.vulstyle import VulDetector
+from sitm_core.inference.vulstyle import VulDetector
 
 def test_vuldetector_extracts_functions():
     code = """

@@ -1,6 +1,6 @@
 import argparse
 import os
-from sitm.inference import InferenceVul, VulDetector
+from sitm_core.inference import InferenceVul, VulDetector
 
 def main():
     parser = argparse.ArgumentParser(description = "SiTM Scanner CLI")
