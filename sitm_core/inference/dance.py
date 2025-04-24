@@ -225,16 +225,20 @@ class InferenceVul:
                         return True
                     continue
                 detected = self.run_inference_on_lines(file_path, changed_lines or None)
+                detected = {
+                    line: info for line, info in detected.items()
+                    if info["credential_type"] != "[Empty]"
+                }
                 current["vulnerable_lines"] = {
                     line: {
                         "credential_type": info["credential_type"],
-                        "line_content": info["content"]
+                        "line_content": info["line_content"]
                     }
                     for line, info in detected.items()
                 }
                 save_cache({**cache, file_path: current})
                 if detected:
                     return True
-            except Exception as e:
+            except Exception:
                 continue
         return False

@@ -16,7 +16,7 @@ def main():
         abs_path = os.path.abspath(path)
         filename = os.path.basename(abs_path)
         is_temp_remote = filename.startswith(".sitm_tmp_remote_")
-        if detector.has_credentials(abs_path):
+        if detector.fast_has_credentials(abs_path):
             if not is_temp_remote:
                 print(f"⚠️  Detected vulnerability in {abs_path}.")
             blocked = True
