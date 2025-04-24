@@ -8,6 +8,7 @@ from sitm_core.inference.model_skel import HCCD
 from sitm_core.utils.io import get_all_text_files, read_file_lines
 from sitm_core.utils.functions import view_results
 from sitm_core.utils.config import config
+from sitm_core.cache.cred_cache import get_file_line_hashes, load_cache, save_cache, should_rescan
 
 from transformers import logging
 logging.set_verbosity_error()
@@ -44,6 +45,16 @@ class InferenceVul:
             model_name = config.gpt_model_name,
             batch_n = config.batch_size_32
         )
+    
+    def preprocess_file_lines(self, file_path: str) -> Tuple[List[str], List[str]]:
+        raw_lines = read_file_lines(file_path)
+        non_empty_lines = []
+        line_map = []
+        for idx, line in enumerate(raw_lines):
+            if line.strip():
+                non_empty_lines.append(line.strip())
+            line_map.append(idx)
+        return raw_lines, non_empty_lines
 
     def load_model(self) -> torch.nn.Module:
         model = self.hccd
@@ -70,18 +81,46 @@ class InferenceVul:
                     "credential_type": f"[{label_map[pred]}]"
                 }
         return result
-
-    def preprocess_file_lines(self, file_path: str) -> Tuple[List[str], List[str]]:
-        raw_lines = read_file_lines(file_path)
-        non_empty_lines = []
-        line_map = []
-        for idx, line in enumerate(raw_lines):
-            if line.strip():
-                non_empty_lines.append(line.strip())
-            line_map.append(idx)
-        return raw_lines, non_empty_lines
-
-    def run_detection(self, path: str | List[str]) -> None:
+    
+    def run_inference_on_lines(self, file_path: str, line_numbers: list[str] = None) -> dict:
+        try:
+            with open(file_path, "r", errors = "ignore") as f:
+                all_lines = f.readlines()
+        except Exception:
+            return {}
+        if line_numbers:
+            line_numbers = sorted([int(i) for i in line_numbers if int(i) < len(all_lines)])
+        else:
+            line_numbers = list(range(len(all_lines)))
+        raw_selected = [all_lines[i] for i in line_numbers]
+        non_empty_lines = [line.strip() for line in raw_selected if line.strip()]
+        if not non_empty_lines:
+            return {}
+        embeddings = self.get_embeddings(non_empty_lines)
+        with torch.no_grad():
+            inputs = torch.tensor(np.array(embeddings)).float()
+            outputs = self.model(inputs)
+            predictions = torch.argmax(outputs, dim = 1).tolist()
+        label_map = config.label_map
+        result = {}
+        pred_idx = 0
+        for output_idx, line_no in enumerate(line_numbers):
+            raw_line = all_lines[line_no]
+            if raw_line.strip() == "":
+                result[str(line_no)] = {
+                    "line_content": "Empty",
+                    "credential_type": "Empty"
+                }
+            else:
+                label = label_map[predictions[pred_idx]]
+                pred_idx += 1
+                result[str(line_no)] = {
+                    "line_content": f"[{raw_line.strip()}]",
+                    "credential_type": f"[{label}]"
+                }
+        return result
+    
+    def scan(self, path: str | List[str]) -> None:
         files = get_all_text_files(path)
         if not files:
             print("No readable text files found.")
@@ -99,6 +138,61 @@ class InferenceVul:
             except Exception as e:
                 print(f"Error processing file {file_path}: {e}")
                 continue
+    
+    def fast_scan(self, path: str | List[str]) -> None:
+        files = get_all_text_files(path)
+        cache = load_cache()
+
+        if not files:
+            print("No readable text files found.")
+            return
+        for file_path in files:
+            try:
+                current = get_file_line_hashes(file_path)
+                if "error" in current:
+                    continue
+                rescan_needed, changed_lines = should_rescan(file_path, current, cache)
+                if not rescan_needed:
+                    cached_result = cache.get(file_path, {}).get("vulnerable_lines", {})
+                    if cached_result:
+                        formatted_cached = {
+                            f"Line {int(line) + 1}": {
+                                "line_content": cached_result[line]["line_content"],
+                                "credential_type": cached_result[line]["credential_type"]
+                            }
+                            for line in cached_result
+                        }
+                        print(f"Results for {file_path} (from cache)")
+                        view_results(formatted_cached)
+                    else:
+                        print(f"Results for {file_path}: No credentials found.")
+                    continue
+                detected = self.run_inference_on_lines(file_path, changed_lines or None)
+
+                if detected:
+                    formatted_detected = {
+                        f"Line {int(line) + 1}": {
+                            "line_content": detected[line]["line_content"],
+                            "credential_type": detected[line]["credential_type"]
+                        }
+                        for line in detected
+                    }
+                    print(f"Results for {file_path}")
+                    view_results(formatted_detected)
+                else:
+                    print(f"Results for {file_path}: No credentials found.")
+                current["vulnerable_lines"] = {
+                    line: {
+                        "credential_type": info["credential_type"],
+                        "line_content": info["line_content"]
+                    }
+                    for line, info in detected.items()
+                }
+                save_cache({**cache, file_path: current})
+
+            except Exception as e:
+                print(f"Error scanning file {file_path}: {e}")
+                continue
 
     def has_credentials(self, path: str | List[str]) -> bool:
         files = get_all_text_files(path)
@@ -114,5 +208,33 @@ class InferenceVul:
                         return True
             except Exception as e:
                 print(f"Error scanning file {file_path}: {e}")
+                continue
+        return False
+    
+    def fast_has_credentials(self, path: str | List[str]) -> bool:
+        files = get_all_text_files(path)
+        cache = load_cache()
+        for file_path in files:
+            try:
+                current = get_file_line_hashes(file_path)
+                if "error" in current:
+                    continue
+                rescan_needed, changed_lines = should_rescan(file_path, current, cache)
+                if not rescan_needed:
+                    if cache.get(file_path, {}).get("vulnerable_lines"):
+                        return True
+                    continue
+                detected = self.run_inference_on_lines(file_path, changed_lines or None)
+                current["vulnerable_lines"] = {
+                    line: {
+                        "credential_type": info["credential_type"],
+                        "line_content": info["content"]
+                    }
+                    for line, info in detected.items()
+                }
+                save_cache({**cache, file_path: current})
+                if detected:
+                    return True
+            except Exception as e:
                 continue
         return False

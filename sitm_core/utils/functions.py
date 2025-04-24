@@ -7,7 +7,7 @@ def view_results(result: dict) -> None:
 def view_results_func(file_path: str, func_names: list, func_bodies: list, predictions: list, verbose: bool = False) -> None:
     for name, body, pred in zip(func_names, func_bodies, predictions):
         if pred == 1:
-            print(f"\n🔒 Vulnerability detected in {file_path} -> [function name : {name}]")
+            print(f"\nVulnerability detected in {file_path} -> [function name : {name}]")
             if verbose:
                 print("—" * 50)
                 print(body.strip())
