@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Author: Chidera Biringa
+
 echo "setting up aliases for git and mercurial..."
 
 # git aliases (.git/config, local only)

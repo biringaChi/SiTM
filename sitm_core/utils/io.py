@@ -1,6 +1,10 @@
 import os
 from typing import List
 
+"""
+Author: Chidera Biringa
+"""
+
 def is_text_file(file_path: str) -> bool:
     try:
         with open(file_path, "rb") as f:

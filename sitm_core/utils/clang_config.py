@@ -2,6 +2,10 @@ import os
 import platform
 from clang import cindex
 
+"""
+Author: Chidera Biringa
+"""
+
 def configure_clang():
     if cindex.Config.loaded:
         return

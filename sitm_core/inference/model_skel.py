@@ -1,5 +1,9 @@
 import torch.nn as nn
 
+"""
+Author: Chidera Biringa
+"""
+
 class HCCD(nn.Module):
     def __init__(self):
         super(HCCD, self).__init__()

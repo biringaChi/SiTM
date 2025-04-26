@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Author: Chidera Biringa
+
 blocked=0
 project_root=$(cd "$(dirname "$0")/.." && pwd)
 

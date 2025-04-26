@@ -1,5 +1,11 @@
-from .dance import InferenceVul
 from .model_skel import HCCD
-from .vulstyle import VulDetector
+from .dance import CredentialInference, FastCredentialInference
+from .vulstyle import VulnerabilityInference, FastVulnerabilityInference
 
-__all__ = ["InferenceVul", "HCCD", "VulDetector"]
+__all__ = [
+    "HCCD",
+    "CredentialInference",
+    "FastCredentialInference",
+    "VulnerabilityInference",
+    "FastVulnerabilityInference",
+]

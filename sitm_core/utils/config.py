@@ -1,6 +1,10 @@
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict
 import yaml
+
+"""
+Author: Chidera Biringa
+"""
 
 
 class Config:

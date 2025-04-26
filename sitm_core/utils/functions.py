@@ -1,4 +1,16 @@
 import os
+from sitm_core.utils.io import read_source_code
+from typing import List, Tuple
+
+
+from sitm_core import configure_clang
+configure_clang()
+
+from clang import cindex
+
+"""
+Author: Chidera Biringa
+"""
 
 def view_results(result: dict) -> None:
 	for line_number, details in result.items():
@@ -58,3 +70,75 @@ def generate_dummy_header(missing_symbols, is_c = False):
 	if not is_c:
 		stubs.append("#define REGISTER_STATE_CHECK(x) x\n")
 	return "".join(stubs)
+
+def parse_c_file(file_path: str) -> List[Tuple[str, str]]:
+	_, ext = os.path.splitext(file_path)
+	is_c = ext.lower() == ".c"
+
+	source_code = read_source_code(file_path)
+	if not source_code:
+		return []
+	try:
+		index = cindex.Index.create()
+		clang_args = ['-std=c11'] if is_c else ['-std=c++17']
+		tu = index.parse(file_path, args=clang_args, unsaved_files=[(file_path, source_code)])
+		missing = get_missing_declarations(tu)
+		dummy_header = generate_dummy_header(missing, is_c)
+		combined_source = dummy_header + source_code
+
+		tu = index.parse(file_path, args=clang_args, unsaved_files=[(file_path, combined_source)])
+	except Exception as e:
+		print(f"Failed to parse {file_path}: {e}")
+		return []
+	
+	functions = []
+	def extract_source(node):
+		start = node.extent.start
+		end = node.extent.end
+		lines = combined_source.splitlines(keepends=True)
+		snippet = lines[start.line - 1:end.line]
+		snippet[0] = snippet[0][start.column - 1:]
+		snippet[-1] = snippet[-1][:end.column - 1]
+		return ''.join(snippet)
+
+	def is_function_or_method(node):
+		return (
+			node.kind == cindex.CursorKind.FUNCTION_DECL and node.is_definition()
+		) or (
+			node.kind in {
+				cindex.CursorKind.CXX_METHOD,
+				cindex.CursorKind.CONSTRUCTOR,
+				cindex.CursorKind.DESTRUCTOR,
+				cindex.CursorKind.FUNCTION_TEMPLATE,
+			} and node.is_definition()
+		)
+
+	for node in tu.cursor.get_children():
+		if is_function_or_method(node):
+			try:
+				code = extract_source(node)
+				functions.append((node.spelling, code))
+			except Exception as e:
+				print(f"Could not extract function {node.spelling}: {e}")
+	return functions
+
+def strip_c_comments(body: str, file_path: str = "temp.cpp") -> str:
+	_, ext = os.path.splitext(file_path)
+	is_c = ext.lower() == ".c"
+	try:
+		index = cindex.Index.create()
+		clang_args = ['-std=c11'] if is_c else ['-std=c++17']
+		tu = index.parse(
+			file_path,
+			args = clang_args,
+			unsaved_files = [(file_path, body)],
+			options = cindex.TranslationUnit.PARSE_DETAILED_PROCESSING_RECORD
+		)
+		tokens = list(tu.get_tokens(extent = tu.cursor.extent))
+		filtered = [t.spelling for t in tokens if t.kind.name != "COMMENT"]
+		return " ".join(filtered)
+	except Exception:
+		return "\n".join(
+			line for line in body.splitlines()
+			if not line.strip().startswith("//") and "/*" not in line
+		)

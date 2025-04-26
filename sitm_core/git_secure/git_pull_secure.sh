@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Author: Chidera Biringa
+
 project_root=$(cd "$(dirname "$0")/.." && pwd)
 
 mode="cred"
