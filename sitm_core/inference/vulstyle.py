@@ -34,18 +34,18 @@ class VulnerabilityInference:
     def scan(self, path: Union[str, List[str]]) -> None:
         files = get_all_c_files(path)
         if not files:
-            print("No C/C++ files found.")
+            print("no c/c++ files found.")
             return
         model = self._get_model()
         for file_path in files:
             try:
                 extracted = parse_c_file(file_path)
                 if not extracted:
-                    print(f"Skipping: No functions found in {file_path}")
+                    print(f"skipping: no functions found in {file_path}")
                     continue
                 func_names, func_bodies = zip(*extracted)
                 predictions, _ = model.predict(list(func_bodies))
-                view_results_func(file_path, func_names, func_bodies, predictions, verbose=True)
+                view_results_func(file_path, func_names, func_bodies, predictions, verbose = True)
             except Exception as e:
                 print(f"Error processing {file_path}: {e}")
                 continue
