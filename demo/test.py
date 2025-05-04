@@ -1,1 +1,1 @@
-//    { ProxyType = ExternalProxyType.Socks5, UserName = "User1", Password = "Password" };
+//    { ProxyType = ExternalProxyType.Socks5, UserName = "User1", Password = "Password" }; 
