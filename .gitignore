@@ -176,6 +176,7 @@ cython_debug/
 
 # Ignored project files
 ep
+# demo
 core
 casestudies
 scratch.txt
@@ -190,3 +191,4 @@ ec.py
 .hgignore
 hg_test.txt
 .sitm
+vulstyle

@@ -22,6 +22,7 @@ rebase_flag=""
 remote="origin"
 branch=$(git rev-parse --abbrev-ref HEAD)
 
+# Parse additional args
 while [[ "$#" -gt 0 ]]; do
     case "$1" in
         --rebase|--ff-only|--no-rebase)
@@ -37,45 +38,49 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
+# Fetch remote changes
 git fetch "$remote"
-changed_files=$(git diff --name-only HEAD.."$remote"/"$branch")
+
+# Get remote commit ref
+remote_ref=$(git rev-parse "$remote/$branch")
+
+# Diff between current HEAD and remote branch
+changed_files=$(git diff --name-only HEAD "$remote_ref")
 
 if [[ -z "$changed_files" ]]; then
-    echo "no incoming changes to pull."
+    echo "✅ no incoming changes to pull."
     exit 0
 fi
 
-echo "checking remote changes for vulnerabilities..."
+echo "🔍 checking remote changes for vulnerabilities..."
 
 vulnerable=0
 
 for file in $changed_files; do
-    if [[ "$file" == *.* && "$file" != .* && "$file" != *"/"* ]]; then
-        echo "incoming change: $file (from $remote/$branch)"
-        echo "scanning before merge..."
+    echo "incoming change: $file (from $remote/$branch)"
+    echo "scanning before merge..."
 
-        temp_path=".sitm_tmp_remote_$file"
-        git show "$remote/$branch:$file" > "$temp_path" 2>/dev/null
+    temp_path=".sitm_tmp_remote_$(basename "$file")"
+    git show "$remote/$branch:$file" > "$temp_path" 2>/dev/null
 
-        if [[ -f "$temp_path" ]]; then
-            if file "$temp_path" | grep -q 'text'; then
-                python3 "$detector_script" "$temp_path"
-                if [[ $? -ne 0 ]]; then
-                    echo "detected vulnerability in remote version of $file — pull blocked."
-                    vulnerable=1
-                else
-                    echo "✅ $file passed scan."
-                fi
+    if [[ -f "$temp_path" ]]; then
+        if file "$temp_path" | grep -q 'text'; then
+            python3 "$detector_script" "$temp_path"
+            if [[ $? -ne 0 ]]; then
+                echo "🚫 detected vulnerability in remote version of $file — pull blocked."
+                vulnerable=1
             else
-                echo "skipped non-text file $file"
+                echo "✅ $file passed scan."
             fi
-            rm -f "$temp_path"
+        else
+            echo "⏭️ skipped non-text file $file"
         fi
+        rm -f "$temp_path"
     fi
 done
 
 if [[ $vulnerable -eq 1 ]]; then
-    echo -n "vulnerabilities detected. do you want to continue with the pull? (y/n): "
+    echo -n "❗ vulnerabilities detected. continue with pull? (y/n): "
     read -r confirm
     if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
         echo "❌ pull aborted."
@@ -83,11 +88,11 @@ if [[ $vulnerable -eq 1 ]]; then
     fi
 fi
 
-echo "pulling from $remote $branch $rebase_flag..."
+echo "📥 pulling from $remote $branch $rebase_flag..."
 git pull $rebase_flag "$remote" "$branch"
 
 if [[ $vulnerable -eq 1 ]]; then
-    echo -n "do you want to undo the pull? (y/n): "
+    echo -n "↩️ do you want to undo the pull? (y/n): "
     read -r undo
     if [[ "$undo" == "y" || "$undo" == "Y" ]]; then
         git reset --hard ORIG_HEAD

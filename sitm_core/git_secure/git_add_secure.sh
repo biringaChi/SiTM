@@ -64,6 +64,6 @@ for file in "${files[@]}"; do
 done
 
 if [[ $blocked -eq 1 ]]; then
-    echo "one or more files were blocked due to detected issues."
+    echo "🚫 one or more files were not staged due to detected issues."
     exit 1
 fi
