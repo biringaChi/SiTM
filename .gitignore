@@ -176,7 +176,7 @@ cython_debug/
 
 # Ignored project files
 ep
-# demo
+demo
 core
 casestudies
 scratch.txt
